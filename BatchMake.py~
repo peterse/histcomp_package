@@ -10,8 +10,6 @@ import dctROOTv6 as dR
 
 #To Do:
 #Many append*, remove* statements
-#Set up environment for batch lists:
-batch_dir = "~/batch_meta"
 
 
 parser = OptionParser()
@@ -21,20 +19,19 @@ parser.add_option("-i", "--input",dest="input",help="Batch request file, .txt",t
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 class ExeLines:
 '''Functions for executing lines in input batch request file'''
-	exe_dct = {"BATCHNAME": self.batchname, "APPEND": self.append_remove("append"), "REMOVE": self.append_remove("remove"), "DELETE_BATCH": self.delete(), "DUMP_BATCH", "DUMP_ALL_BATCHES", "REMAKE": self.set_remake()}
+	exe_dct = {"BATCHNAME": self.batchname, "APPEND", "REMOVE", "DELETE_BATCH", "DUMP_BATCH", "DUMP_ALL_BATCHES", "REMAKE"}
 #Have a dct of corresponding methods that automatically constructs the output settings
 	def __init__(self, input_dct):
 		self.in_dct = input_dct
 		self.append_files = []
 		self.remove_files = []
 		self.batch = None
-		self.remake = False
 
 	def batchname(self):
 		self.batch = self.in_dct["BATCHNAME"]
 	
 	def append_remove(self, mode):
-	#Stages appends/removes from a APPEND or REMOVE command
+	#Populates append_files or remove_files from a APPEND or REMOVE command
 		if mode == "append":
 			my_list = self.append_files
 			file_dir = self.in_dct["APPEND"]
@@ -48,52 +45,24 @@ class ExeLines:
 		#Directory option: Get all root files in provided directory
 		else:
 			try:
-				with dR.cd("%s" % file_dir):
+				with dR.cd("/%s" % file_dir):
 					pwd = os.getcwd()
 					my_list += [i for i in os.listdir() if ".root" in i]
 			except:
-				print "Error: Could not access directory %s" % file_dir
+				print "Error: Could not access directory /%s" % file_dir
 				sys.exit()
-
-	def set_remake(self):
-		return
 	#JSON methods
 	def delete(self):
 		return
 	def delete_batch(self):
 		return
-	def dump_batch_all(self):
-		return
+	def dump_batch_all
 
-	#Executing the proper functions
-	def execute(self):
-		#Execute the corresponding function in exe_dct
-		for kw in self.input_dct:
-			exe_dct[kw]
-		self.__write_out()
-
-	def __write_out():
-		#Construct batch meta
-		if self.remake:
-			file_handle = open("%s/batches", "recreate")
-			new_batch = json.dumps(self.append_files)
-			file_handle.write(new_batch)
-			file_handle.close()
-			return
-		else:
-			file_handle = open("%s/batches", "rw")
-			decoded = json.load(file_handle)
-			for filename in decode
-			#Append batch_content
-		
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-#Eventually export this to TestPackage.py
-def path_check():
-#Check that batch_dir is set up, writable, etc.
-	return
 
-def file_check(*args):
+
+def file_check(self, *args):
 #Each arg is a tuple of (file_name, ".suffix")
 	for arg in args:
 		if str(arg[1]) not in str(arg[0]):
