@@ -1,0 +1,6 @@
+#This is a comment line
+BATCHNAME testbatch
+APPEND testy.root
+
+DELETE_BATCH testbatch
+REMAKE True

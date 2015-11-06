@@ -1,0 +1,11 @@
+#Batchmake.txt - a sample .txt file for submitting a batch construction request
+#'Batch' refers to a set of root files whose ranges will contribute to a combined histogram range
+
+BATCHNAME my_batch #The name of the batch that will be referenced, printed, etc.
+REMAKE bool #my_batch will be recreated from this file's commands
+APPEND filename.root #append a single root file's ranges to the range batch
+APPEND dir_name #append all .root files in a directory (you will be notified of batch contents)
+REMOVE filename.root #remove a single root file's ranges to the range batch
+DELETE_BATCH batch_name #Permanently destroy the batch
+DUMP_BATCH (.txt) #Prints the batch contents to the shell (.txt file)
+DUMP_ALL_BATCHES (.txt) #Prints all available batches to the shell (.txt file)
