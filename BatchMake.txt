@@ -3,9 +3,14 @@
 
 BATCHNAME my_batch #The name of the batch that will be referenced, printed, etc.
 REMAKE bool #my_batch will be recreated from this file's commands
-APPEND filename.root #append a single root file's ranges to the range batch
+APPEND* filename.root #append a single root file's ranges to the range batch
 APPEND dir_name #append all .root files in a directory (you will be notified of batch contents)
-REMOVE filename.root #remove a single root file's ranges to the range batch
-DELETE_BATCH batch_name #Permanently destroy the batch
-DUMP_BATCH (.txt) #Prints the batch contents to the shell (.txt file)
-DUMP_ALL_BATCHES (.txt) #Prints all available batches to the shell (.txt file)
+REMOVE* filename.root #remove a single root file's ranges to the range batch
+REMOVE dir_name
+DELETE_BATCH* batch_name #Permanently destroy the given batches
+
+DUMP_BATCH shell (.txt) #Prints the batch contents to the shell (.txt file)
+DUMP_ALL_BATCHES shell (.txt) #Prints all available batches to the shell (.txt file)
+#dump commands return contents BEFORE edits have been made
+
+
