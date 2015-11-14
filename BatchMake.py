@@ -9,16 +9,13 @@ from optparse import OptionParser
 import dctROOTv7 as dR
 
 #To Do:
-#Many append*, remove* statements
 #Set up environment for batch lists:
 batch_path = "~/batch_meta"
 rfile_path = "~/rfile_meta"
 rootfile_path = "~/histcomp_staging"
 #Configure unittest - python2.6 is broken...
 
-parser = OptionParser()
-parser.add_option("-i", "--input",dest="input",help="Batch request file, .txt",type='string')
-(options, args)=parser.parse_args()
+
 
 #Class ExeLines
 #Attributes
@@ -44,33 +41,41 @@ class ExeLines:
 		self.rfile_path = rfile_path
 		self.rfile_directory = "range_files"
 		self.rootfile_path = rootfile_path
+		# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
 		self.all_paths = [self.rfile_path, self.batch_path, "%s/%s" % (self.batch_path, self.batches_dir), "%s/%s" % (self.rfile_path, self.rfile_directory), self.rootfile_path]
 		self.all_files_path = {self.metameta_fname: self.batch_path, self.rfile_meta_fname: self.rfile_path}
 		self.make_path_lst = []
-		# # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
-
-		self.problems = []
-		self.status_good = self.check_path_status()
-		self.delete_done = False
-
+		#Input objects
 		self.append_files = []
 		self.remove_files = []
 		self.delete_batches = []
 		self.batch = None
 		self.remake = False
 
+		#Debug etc
+		self.debug = True
+		self.problems = []
+		self.status_good = self.check_path_status()
+		self.delete_done = False
+
+
 		#range construction attrs
 		self.construct_lst = []
 
 		#Run the provided .txt script
 		self.exe_dct = {"BATCHNAME": self.batchname, "APPEND": self.append_remove, "REMOVE": self.append_remove, "DELETE_BATCH": self.delete_batch, "DUMP_BATCH": self.dump_batch_all, "DUMP_ALL_BATCHES": self.dump_batch_all, "REMAKE": self.set_remake}
+		
 		if self.status_good:
 			self.execute()
 		else:
-			print "Error executing BatchMake.py: %s" % ", ".join(self.problems)
+			self.ping_current_status
 
-
+	def ping_current_status(self):
+		if not self.status_good:
+			print "Error executing BatchMake.py: %s" % "\n".join(self.problems)
+			sys.exit()
 
 	def check_path_status(self):
 	#Make sure the environment is set up properly
@@ -79,7 +84,7 @@ class ExeLines:
 		for filename, path in self.all_files_path.iteritems():
 			all_files_checked.append(self.check_exists(path, filename))
 		all_files_good = all(all_files_checked)
-		return all([all_files_good, all_paths_good])
+		return all([all_files_good, all_paths_good])	
 		
 	def check_path(self, path):
 		try:
@@ -105,24 +110,32 @@ class ExeLines:
 				if dr not in os.listdir(pwd):
 					os.mkdir(dr)
 
-	def check_exists(self, path, filename):
-	#Check if meta at ~path/filename exists; if not, automatically construct it
-		print filename
+	def check_exists(self, path, filename, auto=True):
+	#Check if file at ~path/filename exists; if not, automatically construct it
 		try:
 			with dR.cd(path):
 				pwd = os.getcwd()
-				if filename in os.listdir(pwd):
-					return True
 		#Fails if directory path doesn't exists
 		except OSError:
+			self.problems.append("Directory %s does not exist" % path)
 			return False
-		#If file wasn't present, automatically create the metafile
+		
 		else:
-			print "Creating meta file at %s/%s" % (path, filename)
-			with dR.cd(path):
-				with open(filename, "w+") as file_handle:
-					file_handle.write(json.dumps([]))
-			return True
+			#Check for the file as is
+			if filename in os.listdir(pwd):
+				return True
+			else:
+				#If file wasn't present, automatically create the metafile
+				if auto:
+					print "Creating meta file at %s/%s" % (path, filename)
+					with dR.cd(path):
+						with open(filename, "w+") as file_handle:
+							file_handle.write(json.dumps([]))
+					return True
+				#If the file is necessary and not a metafile, set status to bad
+				else:
+					self.problems.append("File %s/%s does not exist" % (path, filename))
+					return False
 
 	def __syntax_check(self):
 	#Check for weird inputs in the .txt file
@@ -188,6 +201,7 @@ class ExeLines:
 					#The record was already deleted
 					#print "caught err", sys.exc_info()[1]
 					continue
+		#Edit the metadata on batches
 		with dR.cd(self.batch_path):
 			with open(self.metameta_fname, "r") as file_handle:
 				batch_lst = json.load(file_handle)
@@ -228,9 +242,8 @@ class ExeLines:
 				write_out.write(grab_lst)
 			return
 
-	#Executing the proper functions
 	def execute(self):
-		#Execute the corresponding function in exe_dct
+	#Execute the corresponding function in exe_dct
 		for kw in self.in_dct:
 			#Entries of the read_in dct are lists
 			#Only execute over given entries; I have set defaults for some cmds eg REMAKE
@@ -238,6 +251,10 @@ class ExeLines:
 				self.exe_dct[kw](kw.lower(), i)
 		self.__syntax_check()
 		if self.status_good:
+			#Root files may not exist
+			self.status_good = all([self.check_exists(self.rootfile_path, rootfile, auto=False) for rootfile in self.append_files])
+			self.ping_current_status()
+
 			self.__write_out()
 			self.__update_mm()
 			self.__construct_ranges()
@@ -303,9 +320,10 @@ class ExeLines:
 				if rootfile in os.listdir(pwd):
 					continue
 				with dR.cd(self.rootfile_path):
-					FT = dR.fileTools(rootfile, self.rfile_path, debug=True)
+					FT = dR.fileTools(rootfile, self.rfile_path, debug=self.debug)
 					FT.construct_all_ranges()
 				constructed_lst.append(rootfile)
+
 		#Append to the rangefile metadata
 		if any(constructed_lst):
 			with dR.cd(self.rfile_path):
@@ -315,16 +333,7 @@ class ExeLines:
 					rfmeta.append(new)
 				with open(self.rfile_meta_fname, "w+") as file_handle:
 					file_handle.write(json.dumps(rfmeta))
-				
-				
-
-				
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-#Eventually export this to TestPackage.py
-def path_check():
-#Check that batch_dir is set up, writable, etc.
-	return
 
 def file_check(*args):
 #Each arg is a tuple of (file_name, ".suffix")
@@ -333,41 +342,74 @@ def file_check(*args):
 			print "Error: Improper filetype: '%s' not provided" % (str(arg[1]))
 			sys.exit()
 
-def valid_command(parse_list):
+class TxtParser():
+	"""A group of functions for reading in txt cmd files"""
 
-	if len(parse_list) > 2:
-		return False
-	if parse_list[0].upper() not in ExeLines.exe_lst:
-		return False
-	return True
+	def __init__(self, exe_class):
+		#Inherit the execution cmds from exe_class
+		self.exe_class = exe_class
 
-def read_in_dct(filename):
-#Read in the file and send each line to a dictionary
-	dct = {}
-	#Only accepts .txt files
-	file_check((filename, ".txt"))
-	file_handle = open(filename,"r")
-	file_handle.seek(0)
-	for raw_line in file_handle.readlines():
-		line  = raw_line.split()
-		#Skip comment lines and blank lines
-		try:
-			if line[0][0] == '#':
+	def valid_command(self, parse_list):
+		if len(parse_list) != 2:
+			return False
+		if parse_list[0].upper() not in self.exe_class.exe_lst:
+			return False
+		return True
+
+	def read_in_dct(self, filename):
+	#Read in the file and send each line to a dictionary
+		dct = {}
+		#Only accepts .txt files
+		file_check((filename, ".txt"))
+		file_handle = open(filename,"r")
+		file_handle.seek(0)
+		for raw_line in file_handle.readlines():
+			line  = raw_line.split()
+			#Skip comment lines and blank lines
+			try:
+				if line[0][0] == '#':
+					continue
+			except:
 				continue
-		except:
-			continue
-		if not valid_command(line):
-			print "Error at read in: '%s' is not a valid command" % raw_line
-			sys.exit()
-		#Create lists when a command is used many times
-		current_cmd = line[0].upper()
-		if current_cmd not in dct:
-			dct[current_cmd] = [line[1]]
-		else: 
-			dct[current_cmd].append(line[1])	
+			if not self.valid_command(line):
+				print "Error at read in: '%s' is not a valid command" % " ".join(line)
+				sys.exit()
+			#Create lists when a command is used many times
+			current_cmd = line[0].upper()
+			if current_cmd not in dct:
+				dct[current_cmd] = [line[1]]
+			else: 
+				dct[current_cmd].append(line[1])	
 	
-	return dct
+		return dct
 
+
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+#Script Region
+if __name__ == "__main__":
+	parser = OptionParser()
+	parser.add_option("-i", "--input",dest="input",help="Batch request file, .txt",type='string')
+	(options, args)=parser.parse_args()
+	mydct = TxtParser(ExeLines).read_in_dct(options.input)
+	print "Your input batch options:"
+	dR.dctTools(mydct).printer()
+	ExeLines(mydct, batch_path, rfile_path, rootfile_path)
+
+
+
+
+
+
+
+
+
+
+
+
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
 import unittest
 import shutil
@@ -393,10 +435,13 @@ class TestBatchMake(unittest.TestCase):
 		return
 
 #Scripting /testing area
-debug_input = "batch_test.txt"
-mydct = read_in_dct(debug_input)
-dR.dctTools(mydct).printer()
-ExeLines(mydct, batch_path, rfile_path, rootfile_path)
+script = False
+if script:
+	debug_input = "batch_test.txt"
+	mydct = TxtParser(ExeLines).read_in_dct(debug_input)
+	print 
+	dR.dctTools(mydct).printer()
+	ExeLines(mydct, batch_path, rfile_path, rootfile_path)
 
 #unittest.main()
 

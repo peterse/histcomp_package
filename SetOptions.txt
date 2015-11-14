@@ -7,7 +7,7 @@ INPUT* directory #Perform analysis over all .root files in directory
 #Choose the ranges to compare histograms over
 RANGEFILE* my_batch #allow all .root files in my_batch to contribute to the hist range
 RANGEFILE* rootfile.root #allow rootfile.root to contribute to the range
-USE_INPUT_RANGE bool #Whether the input file(s) contribute their ranges to the hist range (default True)
+USE_INPUT_RANGE bool #Whether the input file(s) contribute their ranges to the hist range (default False)
 
 PROFILE bool #if True, constructs profile histograms of branches with >PROFILE_N_CHANNELS
 PROFILE_N_CHANNELS #Sets a threshold for profiling a branch's leafs
@@ -15,5 +15,5 @@ PROFILE_N_CHANNELS #Sets a threshold for profiling a branch's leafs
 WEIGHT_BRANCH branch_name #Analysis will weight data using weights from branch_name
 
 PUBLISH bool #Publish the results online?
-OUT_DIR str # Output directory for the histogram .root files
+OUT_DIR str #full path for the output directory of the histogram .root files
 
