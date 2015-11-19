@@ -295,7 +295,7 @@ class fileTools():
 			self.tree_dct = {}
 			self.tree_handle_dct = {}
 			self.hist_dct = {}
-			self.sister_db = self.__construct_rfile_name()
+			self.sister_db = self.get_rfile_name(file_name)
 
 			#Private attributes
 
@@ -482,6 +482,9 @@ class fileTools():
 		mode = "ROOT"
 		if dbname_out==None:
 			dbname_out = self.sister_db
+			#Only continue if the database does not exist
+			if self.sister_db_exists:
+				return
 		elif dbname_out:
 			print "Warning at FileTools(%s).construct_all_ranges(%s): Output database will not contribute to master histogram ranges" % (self.file_name, dbname_out)
 		self.__file_check(self.construct_all_ranges, (dbname_out, ".db"))
@@ -506,10 +509,10 @@ class fileTools():
 			self.conn.commit()
 			self.conn.close()
 
-	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 	
-	def __construct_rfile_name(self):
-		name = self.file_name.replace(".root", "")
-		name += "_ranges.db" 
+	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+	@staticmethod	
+	def get_rfile_name(rootfile_name):
+		name = rootfile_name.replace(".root", "_ranges.db")
 		return name
 		
 	# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -	
@@ -606,6 +609,7 @@ class fileTools():
 				db_N_sl = c.fetchone()[0]
 				if tot_N_sl != db_N_sl:
 					print "Range file %s failed check for proper size: Reconstructing rangefile" % self.sister_db
+					self.sister_db_exists = False
 					self.construct_all_ranges()
 				else:
 					return

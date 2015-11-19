@@ -1,4 +1,7 @@
 #This is a comment line
-BATCHNAME testbatch
-APPEND testy.root
+BATCHNAME testbatch3
+
+APPEND test_file_1.root
+APPEND test_file_3.root
+REMAKE True
 
